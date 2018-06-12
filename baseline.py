@@ -79,7 +79,7 @@ def myJade(csvDir):
     DATA.sort(key=lambda tup: tup[0])
     # compute the baseline function
     # find the left end of the peak
-    threshold = 0.01
+    threshold = 0.005
     (xl, yl, slopel) = footFinder(DATA, 'left', threshold, xpeakorg)    
     # find the right end of the peak
     (xr, yr, sloper) = footFinder(DATA, 'right', threshold, xpeakorg)
@@ -121,6 +121,7 @@ def myJade(csvDir):
         (prevx, prevy) = coord # update prevx
         
     halfwidth = rightInterPo[0] - leftInterPo[0]
+    halfwidth = 'N/A' if halfwidth < 0 else halfwidth
 ##    print "Before baseline redefinition, peak is at coordinate: " + str((xpeakorg,ypeakorg))
 ##    print "After baseline redefinition, peak is at coordinate: " + str((xpeak,ypeak))
 ##    print "Halfwidth is: " + str(halfwidth)
