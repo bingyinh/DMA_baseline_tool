@@ -8,6 +8,52 @@ def interpolation(coord1,coord2,y):
     x = coord2[0] - (coord2[1] - y)/slope
     return (x,y)
 
+# a helper method that finds the coordinate of the "foot" of the peak.
+# sortedDATA: a list of sorted coordinates tuples
+# direction: "left" finds the left foot, "right" finds the right foot
+# threshold: the largest slope considered as flat
+# xpeakorg: the original x-coordinate of the peak
+def footFinder(sortedDATA, direction, threshold, xpeakorg):
+    myDATA = copy.deepcopy(sortedDATA)
+    slope_init = 1e9
+    slope_prev = slope_init
+    if direction.lower() == 'right':
+        myDATA = list(reversed(myDATA)) # reverse the list
+        (prevx, prevy) = myDATA[0] # record the previous coordinate
+        for coord in myDATA:
+            # skip the first coordinates
+            if coord == (prevx, prevy):
+                continue
+            # start from the second coordinates
+            (x, y) = coord
+            # if we move to the other side of the peak, return the outmost coord on the right
+            if x < xpeakorg:
+                return (myDATA[0][0], myDATA[0][1], slope_init)
+            # else check the slope
+            slope = (y - prevy) / float(x - prevx)
+            # if the slope exceeds the threshold, return the previous coord
+            if abs(slope) > threshold:
+                return (prevx, prevy, slope_prev)
+            (prevx, prevy) = (x, y) # update (prevx, prevy)
+            slope_prev = slope # update slope_prev
+    else:
+        (prevx, prevy) = myDATA[0] # record the previous coordinate
+        for coord in myDATA:
+            # skip the first coordinates
+            if coord == (prevx, prevy):
+                continue
+            # start from the second coordinates
+            (x, y) = coord
+            # if we move to the other side of the peak, return the outmost coord on the left
+            if x > xpeakorg:
+                return (myDATA[0][0], myDATA[0][1], slope_init)
+            # else check the slope
+            slope = (y - prevy) / float(x - prevx)
+            # if the slope exceeds the threshold, return the previous coord
+            if abs(slope) > threshold:
+                return (prevx, prevy, slope_prev)
+            (prevx, prevy) = (x, y) # update (prevx, prevy)
+            slope_prev = slope # update slope_prev
 def myJade(csvDir):
     DATA_raw = [] # list storing coordinate tuples
     # read data points
@@ -32,14 +78,22 @@ def myJade(csvDir):
     # sort
     DATA.sort(key=lambda tup: tup[0])
     # compute the baseline function
-    left = DATA[0]
-    xl = left[0]
-    yl = left[1]
-    right = DATA[-1]
-    xr = right[0]
-    yr = right[1]
-    kbase = (yr - yl)/(xr - xl)
-    bbase = yl - kbase * xl
+    # find the left end of the peak
+    threshold = 0.01
+    (xl, yl, slopel) = footFinder(DATA, 'left', threshold, xpeakorg)    
+    # find the right end of the peak
+    (xr, yr, sloper) = footFinder(DATA, 'right', threshold, xpeakorg)
+    if slopel < threshold and sloper < threshold:
+        kbase = (yr - yl)/(xr - xl)
+        bbase = yl - kbase * xl
+    elif slopel < threshold and sloper >= threshold:
+        kbase = 0
+        bbase = yl
+    elif slopel >= threshold and sloper < threshold:
+        kbase = 0
+        bbase = yr
+    else: # both slopel and sloper >= threshold
+        return (xpeakorg, ypeakorg, xpeak, 'Are you sure you plot all the data points? Too steep on both ends!', 'N/A')
     # baseline standardization and find the peak
     DATA_BL = []
     ypeak = -999999999999999.0
